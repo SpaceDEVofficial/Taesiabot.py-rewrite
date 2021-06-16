@@ -1,0 +1,204 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+<!-- [ Main Content ] start -->
+
+<div class="pc-container">
+    <div class="pcoded-content">
+        <!-- [ Main Content ] start -->
+        <div class="row animate__animated animate__fadeIn animate__slow">
+            {% if perm == False %}
+            <div class="alert alert-danger alert-dismissible fade show animate__animated animate__delay-1s animate__flash" role="alert">
+                <i data-feather="alert-circle" class="feed-icon p-2 wid-30 hei-30"></i>
+                <strong>주의!</strong> 이 서버( <strong>{{name}}</strong> )에서 부여받은 역할중 최고역할인 '<strong>@{{role}}</strong>'(이)가 '<strong>관리자</strong>'권한을 포함하고있지않습니다. 원활한 사용을 위해 <strong>관리자</strong> 권한을 부여해주세요.
+            </div>
+            {% else %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i data-feather="check-circle" class="feed-icon p-2 wid-30 hei-30"></i>
+              <strong>관리자권한을 부여받은서버</strong>| 이 서버( <strong>{{name}}</strong> )에서 부여받은 역할중 최고역할인 '<strong>@{{role}}</strong>'(이)가 '<strong>관리자</strong>'권한을 포함하고있으므로 정상작동이 가능합니다.
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'danger' %}
+                        <div class="fixed-top ml-auto">
+                            <div style="position: absolute;top: 150px; right: 5px;">
+                                <div class="container p-2">
+                                    <div class="row no-gutters">
+                                        <div class="col-lg-12 col-md-12 ml-auto">
+                                            <div class="alert alert_auto alert-success fade show bg-light-danger" role="alert">
+                                                <h4 class="alert-heading">에러!</h4>
+                                                <p>{{message}}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="fixed-top ml-auto">
+                            <div style="position: absolute;top: 150px; right: 5px;">
+                                <div class="container p-2">
+                                    <div class="row no-gutters">
+                                        <div class="col-lg-12 col-md-12 ml-auto">
+                                            <div class="alert alert_auto alert-success fade show bg-light-info" role="alert">
+                                                <h4 class="alert-heading">성공!!</h4>
+                                                <p>{{message}}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <!-- support-section start -->
+            <div class="col-xl-6 col-md-12 ">
+                <div class="card flat-card">
+                    <div class="row-table" style="height: 192px">
+                        <div class="col-sm-6 card-body br">
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <i class="material-icons-two-tone text-primary mb-1">group</i>
+                                </div>
+                                <div class="col-sm-8 text-md-center">
+                                    <h5>{{member}}</h5>
+                                    <span>서버 유저수</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 d-none d-md-table-cell d-lg-table-cell d-xl-table-cell card-body br">
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <i class="material-icons-two-tone text-primary mb-1">language</i>
+                                </div>
+                                <div class="col-sm-8 text-md-center">
+                                    {% if counts["error"]==True %}
+                                    <h5>Error - 관리자님께 문의하세요.</h5>
+                                    {% else %}
+                                    <h5>{{counts["item"]}}</h5>
+                                    {% endif %}
+                                    <span>커맨드 요청수</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 card-body">
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <i class="material-icons-two-tone text-primary mb-1">unarchive</i>
+                                </div>
+                                <div class="col-sm-8 text-md-center">
+                                    <h5>600</h5>
+                                    <span>오늘 신규유저수</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- support-section end -->
+            <!-- customer-section start -->
+            <div class="col-xl-6 col-md-12 ">
+                <div class="card feed-card">
+                    <div class="card-header">
+                        <h5>공지사항</h5>
+                    </div>
+                    <div class="feed-scroll" style="height:125px;position:relative;">
+                        <div class="card-body">
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col-auto p-r-0">
+                                    <i data-feather="bell" class="bg-light-primary feed-icon p-2 wid-30 hei-30"></i>
+                                </div>
+                                <div class="col">
+                                    <a href="#!">
+                                        <h6 class="m-b-5">서버 점검안내. <span class="text-muted float-right f-14">Just Now</span></h6>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col-auto p-r-0">
+                                    <i data-feather="bell" class="bg-light-primary feed-icon p-2 wid-30 hei-30"></i>
+                                </div>
+                                <div class="col">
+                                    <a href="#!">
+                                        <h6 class="m-b-5">태시아봇 대시보드 정식 오픈! <span class="text-muted float-right f-14">Just Now</span></h6>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-md-12 ">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>커스텀 프리픽스</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row pb-2">
+                            <form action="/api/prefix/{{id}}" method="post">
+                                <div class="input-group mb-3">
+                                  <span class="input-group-text" id="basic-addon1">prefix</span>
+                                  <input name="prefix" type="text" class="form-control" placeholder="커스텀 프리픽스를 입력하세요." aria-label="Username" aria-describedby="basic-addon1" value={{prefix}}>
+                                  <button type="submit"  class="btn btn-outline-primary"><i class="mr-2" data-feather="upload-cloud"></i>적용하기</button>
+                                  <!--button type="reset"  class="btn btn-outline-danger"><i class="mr-2" data-feather="rotate-ccw"></i>리셋하기</button-->
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-md-12 ">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>봇 관리자에게 버그제보 및 기타 문의하기</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row pb-2">
+                            <form action="/api/senddm/{{id}}" method="post">
+                                <div class="input-group mb-3">
+                                  <input name="text" type="text" class="form-control" placeholder="문의 및 제보할 내용를 입력하세요." aria-label="Username" aria-describedby="basic-addon2">
+                                  <button type="submit" class="btn btn-outline-primary"><i class="mr-2" data-feather="navigation"></i>전송하기</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-md-6 ">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>봇 투표 - KoreanBots</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row pb-2">
+                            <h4 style="color:red;"><i data-feather="alert-triangle" class="feed-icon p-2 wid-30 hei-30"></i>미투표</h4>
+                            <button type="button" onclick="location.href='https://koreanbots.dev/bots/taesia'" class="btn btn-outline-info"><i class="mr-2" data-feather="thumbs-up"></i>투표하기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-md-6 ">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>봇 투표 - UniqueBots</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row pb-2">
+                            <h4 style="color:darkcyan;"><i data-feather="check-circle" class="feed-icon p-2 wid-30 hei-30"></i>투표완료</h4>
+                            <button type="button" onclick="location.href='https://koreanbots.dev/bots/taesia'" class="btn btn-outline-info" disabled><i class="mr-2" data-feather="check-circle"></i>투표하신상태입니다. 감사합니다.</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- customer-section end -->
+        </div>
+        <!-- [ Main Content ] end -->
+    </div>
+</div>
+<!-- [ Main Content ] end -->
+{% endblock %}

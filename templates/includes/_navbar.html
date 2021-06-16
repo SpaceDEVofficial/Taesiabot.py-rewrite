@@ -1,0 +1,113 @@
+<!-- [ navigation menu ] start -->
+<nav class="pc-sidebar ">
+    <div class="navbar-wrapper">
+        {% if server == False %}
+        <div class="m-header">
+            <a href="#" class="b-brand">
+                <!-- ========   change your logo hear   ============ -->
+                <strong>태시아 봇 대시보드 - 서버선택</strong>
+            </a>
+        </div>
+        <div class="navbar-content">
+            <ul class="pc-navbar">
+                <li class="pc-item animate__animated animate__flash" style="text-align: center;color: #f34a4a">
+                    <i class="mr-2" data-feather="info"></i>오른쪽에 나열된 서버를 선택하여 대시보드로 이동하세요
+                </li>
+            </ul>
+        </div>
+        {% endif %}
+        {% if log == False %}
+        <div class="m-header">
+            <a href="#" class="b-brand">
+                <!-- ========   change your logo hear   ============ -->
+                <strong>태시아 봇 대시보드 - 메인</strong>
+            </a>
+        </div>
+        <div class="navbar-content">
+            <ul class="pc-navbar">
+                <li class="pc-item animate__animated animate__flash" style="text-align: center;color: #f34a4a">
+                    <i class="mr-2" data-feather="info"></i>로그인이 필요한 서비스입니다.
+                </li>
+            </ul>
+        </div>
+        {% endif %}
+        <div class="m-header">
+            <a href="#" class="b-brand">
+                <!-- ========   change your logo hear   ============ -->
+                <img src="{{icon}}" alt="guild-image" style="border-radius: 50%;width: 50px;height: auto">
+                <strong>{{name}}</strong>
+            </a>
+        </div>
+        <div class="navbar-content">
+            <ul class="pc-navbar">
+                <li class="pc-item">
+                    <a href="/select" class="pc-link "><span class="pc-micon"><i class="material-icons-two-tone">home</i></span><span class="pc-mtext">서버선택</span></a>
+                </li>
+                <li class="pc-item pc-caption">
+                    <label>Navigation</label>
+                </li>
+                <li class="pc-item">
+                    <a href="/dashboard/{{id}}" class="pc-link "><span class="pc-micon"><i class="material-icons-two-tone">home</i></span><span class="pc-mtext">대시보드 메인</span></a>
+                </li>
+                <li class="pc-item">
+                    <a href="/lvlcard/{{id}}" class="pc-link "><span class="pc-micon"><i class="material-icons-two-tone">image</i></span><span class="pc-mtext">레벨카드</span></a>
+                </li>
+                <li class="pc-item pc-caption">
+                    <label>서버설정</label>
+                </li>
+                <li class="pc-item pc-hasmenu">
+                    <a href="#!" class="pc-link "><span class="pc-micon"><i class="material-icons-two-tone">settings</i></span><span class="pc-mtext">커맨드 및 로깅</span><span class="pc-arrow"><i data-feather="chevron-right"></i></span></a>
+                    <ul class="pc-submenu">
+                        <li class="pc-item"><a class="pc-link" href="/dashboard/{{id}}/config/lvl">레벨링</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="footers" style="height:70px;width:100%;position:absolute;bottom:0;color:white;text-align: center;background-color: #353548">
+        <i class="far fa-copyright"></i>2021 SpaceDEV, All rights reserved.<br><a href="#" target="_blank">개인사업자등록번호: 000-000-0000</a><br><a target="_blank" href="#"><i class="fab fa-discord"></i></a> | <a  href="mailto:popop0982@naver.com"><i class="far fa-envelope"></i></a>
+    </div>
+</nav>
+<!-- [ navigation menu ] end -->
+<!-- [ Header ] start -->
+<header class="pc-header ">
+    <div class="header-wrapper">
+        <div class="mr-auto" style="padding: 1em;font-size: 1.2em"><strong>태시아 봇 대시보드</strong><span class="badge rounded-pill bg-info">BETA</span> </div>
+        <div class="ml-auto">
+            <ul class="list-unstyled">
+                <li class="dropdown pc-h-item">
+                    {% if log ==False %}
+                    <button type="button" class="btn btn-outline-primary" onclick="location.href='/login'"><i class="mr-2" data-feather="log-in"></i>Login</button>
+                    {% else %}
+                    <a class="pc-head-link dropdown-toggle arrow-none mr-0" data-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                        <img src="{{user.avatar_url or user.default_avatar_url}}" alt="user-image" class="user-avtar">
+                        <span>
+                            <span class="user-name">{{user.name}}#{{user.discriminator}}</span>
+                        </span>
+                    </a>
+                    <div class="dropdown-menu pc-h-dropdown" >
+                        <a href="#!" class="dropdown-item">
+                            <i class="material-icons-two-tone">account_circle</i>
+                            <span>My Account</span>
+                        </a>
+                        <a href="#!" class="dropdown-item">
+                            <i class="material-icons-two-tone">settings</i>
+                            <span>Settings</span>
+                        </a>
+                        <a href="#!" class="dropdown-item">
+                            <i class="material-icons-two-tone">support</i>
+                            <span>Support</span>
+                        </a>
+                        <a href="/logout" class="dropdown-item">
+                            <i class="material-icons-two-tone" data-feather="log-out"></i>
+                            <span style="color:red;">Logout</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                </li>
+            </ul>
+        </div>
+
+    </div>
+</header>
+<!-- [ Header ] end -->

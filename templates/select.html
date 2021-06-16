@@ -1,0 +1,47 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+<!-- [ Main Content ] start -->
+<div class="pc-container">
+    <div class="pcoded-content">
+        <!-- [ Main Content ] start -->
+        <div class="row  animate__animated animate__fadeIn">
+            {% for guild in render_guild %}
+                {% for i in bots %}
+                    {% if i == guild.id %}
+                        {% if guild['permissions']['administrator'] == True %}
+                            <div class="col-xl-3 col-md-12">
+                                <div class="card">
+                                    <img class="img-fluid card-img-top" src="{{guild.icon_url or 'https://www.shitpostbot.com/resize/585/400?img=%2Fimg%2Fsourceimages%2Fdefault-discord-icon-5b254285e1034.png' }}" alt="Card image cap">
+                                    <div class="card-body" style="text-align: center">
+                                        <h3 class="card-title" style="margin: 1.5em auto"><strong>{{guild['name']}}</strong></h3>
+                                        <div style="text-align: center"><button class="btn btn-lg btn-outline-primary" type="button" onclick="location.href='/dashboard/{{guild.id}}'"><i class="mr-2" data-feather="external-link"></i>이동하기</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            {% for guild in render_guild %}
+                {% for i in nobots %}
+                    {% if i == guild.id %}
+                        {% if guild['permissions']['administrator'] == True %}
+                            <div class="col-xl-3 col-md-12">
+                                <div class="card">
+                                    <img class="img-fluid card-img-top" src="{{guild.icon_url or 'https://www.shitpostbot.com/resize/585/400?img=%2Fimg%2Fsourceimages%2Fdefault-discord-icon-5b254285e1034.png' }}" alt="Card image cap">
+                                    <div class="card-body" style="text-align: center">
+                                        <h3 class="card-title" style="margin: 1.5em auto"><strong>{{guild['name']}}</strong></h3>
+                                        <div style="text-align: center"><button onclick="location.href='/invite/{{guild.id}}'" class="btn btn-lg btn-outline-warning" type="button"><i class="mr-2" data-feather="log-in"></i>초대하기</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+        <!-- [ Main Content ] end -->
+    </div>
+</div>
+{% endblock %}

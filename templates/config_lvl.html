@@ -1,0 +1,239 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+<!-- [ Main Content ] start -->
+<div class="pc-container" >
+    <div class="pcoded-content">
+        <!-- [ Main Content ] start -->
+        <div class="row animate__animated animate__fadeIn animate__slow">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'danger' %}
+                        <div class="fixed-top ml-auto">
+                            <div style="position: absolute;top: 150px; right: 5px;">
+                                <div class="container p-2">
+                                    <div class="row no-gutters">
+                                        <div class="col-lg-12 col-md-12 ml-auto">
+                                            <div class="alert alert_auto alert-success fade show bg-light-danger" role="alert">
+                                                <h4 class="alert-heading">에러!</h4>
+                                                <p>{{message}}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="fixed-top ml-auto">
+                            <div style="position: absolute;top: 150px; right: 5px;">
+                                <div class="container p-2">
+                                    <div class="row no-gutters">
+                                        <div class="col-lg-12 col-md-12 ml-auto">
+                                            <div class="alert alert_auto alert-success fade show bg-light-info" role="alert">
+                                                <h4 class="alert-heading">성공!!</h4>
+                                                <p>{{message}}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <div class="col-xl-12 col-md-6 ">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>레벨링 - ON / OFF</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row pb-2" style="text-align: center">
+                            {% if mode == False %}
+                            <h4 style="color: #0d6efd">레벨링 ON</h4>
+                            <form action="/api/changelvl/{{id}}" method="post" style="margin: 0;"><div class="d-grid gap-3"><button type="submit" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#exampleModal">레벨링끄기</button></div></form>
+                            {% else %}
+                            <h4 style="color: #9d0902">레벨링 OFF</h4>
+                            <form action="/api/changelvl/{{id}}" method="post"><div class="d-grid gap-3"><button type="submit" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">레벨링켜기</button></div></form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-12 col-md-6 ">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>레벨링 - 상세설정</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row pb-2">
+                            {% if mode == False %}
+                            <form action="/api/changelvl/channel/{{id}}" method="POST">
+                                <div class="input-group mb-3">
+                                  <label class="input-group-text" for="inputGroupSelect01">무시채널</label>
+                                  <select name="channel" class="form-select" id="inputGroupSelect01">
+                                    <option selected>Choose...</option>
+                                      {% for key,value in channels.items() %}
+                                    <option value={{value}} style="background-color: #23272A;color: #6c6d6e">#{{key}}</option>
+                                      {% endfor %}}
+                                  </select>
+                                  <button type="submit" class="btn btn-outline-primary">적용</button>
+                                </div>
+                            </form>
+                            <form action="/api/changelvl/role/{{id}}" method="POST">
+                                <div class="input-group mb-3">
+                                  <label class="input-group-text" for="inputGroupSelect02">무시역할</label>
+                                  <select name="role" class="form-select" id="inputGroupSelect02">
+                                    <option selected>Choose...</option>
+                                    {% for key,value in roles.items() %}
+                                    <option value={{value}} style="background-color: #23272A;color: #6c6d6e">@{{key}}</option>
+                                      {% endfor %}}
+                                  </select>
+                                  <button type="submit" class="btn btn-outline-primary">적용</button>
+                                </div>
+                            </form>
+                            {% else %}
+                            <form action="" method="post">
+                                <div class="input-group mb-3">
+                                  <label class="input-group-text" for="inputGroupSelect011">무시채널</label>
+                                  <select class="form-select" id="inputGroupSelect011" disabled>
+                                    <option selected>Choose...</option>
+                                      {% for key,value in channels.items() %}
+                                    <option value={{value}} style="background-color: #23272A;color: #6c6d6e">#{{key}}</option>
+                                      {% endfor %}}
+                                  </select>
+                                  <button class="btn btn-outline-primary" disabled>레벨링 모드가 비활성화상태로 적용할수없습니다.</button>
+                                </div>
+                            </form>
+                            <form action="" method="post">
+                                <div class="input-group mb-3">
+                                  <label class="input-group-text" for="inputGroupSelect022">무시역할</label>
+                                  <select name = "role" class="form-select" id="inputGroupSelect022" disabled>
+                                    <option selected>Choose...</option>
+                                    {% for key,value in roles.items() %}
+                                    <option value={{value}} style="background-color: #23272A;color: #6c6d6e">@{{key}}</option>
+                                      {% endfor %}}
+                                  </select>
+                                  <button class="btn btn-outline-primary" disabled>레벨링 모드가 비활성화상태로 적용할수없습니다.</button>
+                                </div>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-md-12 ">
+                <div class="card feed-card">
+                    <div class="card-header">
+                        <h5>무시채널 목록</h5>
+                    </div>
+                    {% if mode == False %}
+                    <div class="feed-scroll" style="height:200px;position:relative;">
+                        <div class="card-body">
+                            {% if igchannel["error"] == True %}
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col">
+                                    <h6 class="m-b-5">무시된 채널 없음</h6>
+                                </div>
+                            </div>
+                            {% else %}
+                            {% for chann in igchannel['item'] %}
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col-auto p-r-0">
+                                    <i data-feather="server" class="bg-light-primary feed-icon p-2 wid-30 hei-30"></i>
+                                </div>
+                                <div class="col">
+                                    <form action="/api/deletelvl/channel/{{id}}/{{chann[1]}}" method="POST"><h6 class="m-b-5">{{chann[2]}}<button type="submit" class="btn btn-outline-primary btn-sm float-right"><span class="text-muted float-right f-14">삭제</span></button></h6></form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="feed-scroll" style="height:200px;position:relative;">
+                        <div class="card-body">
+                            {% if igchannel["error"] == True %}
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col">
+                                    <h6 class="m-b-5">무시된 채널 없음</h6>
+                                </div>
+                            </div>
+                            {% else %}
+                            {% for chann in igchannel['item'] %}
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col-auto p-r-0">
+                                    <i data-feather="server" class="bg-light-primary feed-icon p-2 wid-30 hei-30"></i>
+                                </div>
+                                <div class="col">
+                                    <h6 class="m-b-5">{{chann[2]}}<button type="submit" class="btn btn-outline-primary btn-sm float-right" disabled><span class="text-muted float-right f-14">삭제불가</span></button></h6>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-xl-6 col-md-12 ">
+                <div class="card feed-card">
+                    <div class="card-header">
+                        <h5>무시역할 목록</h5>
+                    </div>
+                    {% if mode == False %}
+                    <div class="feed-scroll" style="height:200px;position:relative;">
+                        <div class="card-body">
+                            {% if igrole["error"] == True %}
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col">
+                                    <h6 class="m-b-5">무시된 역할 없음</h6>
+                                </div>
+                            </div>
+                            {% else %}
+                            {% for chann in igrole['item'] %}
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col-auto p-r-0">
+                                    <i data-feather="server" class="bg-light-primary feed-icon p-2 wid-30 hei-30"></i>
+                                </div>
+                                <div class="col">
+                                    <form action="/api/deletelvl/role/{{id}}/{{chann[1]}}" method="POST"><h6 class="m-b-5">{{chann[2]}}<button type="submit" class="btn btn-outline-primary btn-sm float-right"><span class="text-muted float-right f-14">삭제</span></button></h6></form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="feed-scroll" style="height:200px;position:relative;">
+                        <div class="card-body">
+                            {% if igrole["error"] == True %}
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col">
+                                    <h6 class="m-b-5">무시된 역할 없음</h6>
+                                </div>
+                            </div>
+                            {% else %}
+                            {% for chann in igrole['item'] %}
+                            <div class="row m-b-25 align-items-center">
+                                <div class="col-auto p-r-0">
+                                    <i data-feather="server" class="bg-light-primary feed-icon p-2 wid-30 hei-30"></i>
+                                </div>
+                                <div class="col">
+                                    <h6 class="m-b-5">{{chann[2]}}<button type="submit" class="btn btn-outline-primary btn-sm float-right" disabled><span class="text-muted float-right f-14">삭제불가</span></button></h6>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- [ Main Content ] end -->
+    </div>
+</div>
+<!-- [ Main Content ] end -->
+{% endblock %}

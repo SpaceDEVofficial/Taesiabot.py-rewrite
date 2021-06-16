@@ -1,0 +1,39 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+<!-- [ Main Content ] start -->
+
+<div class="pc-container">
+    <div class="pcoded-content">
+        <!-- [ Main Content ] start -->
+        <div class="row animate__animated animate__fadeIn animate__slow">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'danger' %}
+                        <div class="alert alert_auto alert-danger alert-dismissible fade show" role="alert">
+                            <i data-feather="alert-triangle" class="feed-icon p-2 wid-30 hei-30"></i>
+                          <strong>{{message}}</strong>
+                          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% else %}
+                        <div class="alert alert_auto alert-success alert-dismissible fade show" role="alert">
+                            <i data-feather="check-circle" class="feed-icon p-2 wid-30 hei-30"></i>
+                          <strong>{{message}}</strong>
+                          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <form action="/api/lvlcard/{{id}}/{{user.id}}" method="post">
+                <img src="../static/images/userlvl-{{code}}.png" style="width: 1000px;height: auto;">
+                <label for="exampleColorInput" class="form-label" style="font-size: 30px;margin: 5px"><strong>커스텀 컬러</strong></label>
+                <input style="width: 150px;height: auto;margin: 10px" type="color" class="form-control form-control-color" name="color" id="exampleColorInput" value="{{color}}" title="Choose your color">
+                <button type="submit" class="btn btn-outline-primary" style="margin: 10px auto;">적용하기</button>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- [ Main Content ] end -->
+{% endblock %}
