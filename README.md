@@ -16,4 +16,4 @@
 이 양식을 지켜 이슈남겨주시고 임베드 푸터나 따로 이 레포를 사용했다는것을 명시해주세요.
 
 ## 셋업
-### 셋업 방법은 [여기](https://github.com/SpaceDEVofficial/Taesiabot.py-rewrite/guide/setup.md) 에서 확인하실수있습니다.
+### 셋업 방법은 [여기](https://github.com/SpaceDEVofficial/Taesiabot.py-rewrite/blob/main/guide/setup.md) 에서 확인하실수있습니다.
