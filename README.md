@@ -13,7 +13,9 @@
 디스코드 닉네임(unknown#0000):
 디스코드 ID(12345678):
 ```
-이 양식을 지켜 이슈남겨주시고 임베드 푸터나 따로 이 레포를 사용했다는것을 명시해주세요.
+**이 양식을 지켜 이슈남겨주시고 이 레포에 스타와 임베드 푸터나 따로 이 레포를 사용했다는것을 명시해주세요.**
 
 ## 셋업
 ### 셋업 방법은 [여기](https://github.com/SpaceDEVofficial/Taesiabot.py-rewrite/blob/main/guide/setup.md) 에서 확인하실수있습니다.
+
+## 대시보드는 [이곳](https://gumroad.com/l/dashboardkit-free?recommended_by=search) 의 템플릿을 사용하였습니다.
