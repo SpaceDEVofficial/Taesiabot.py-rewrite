@@ -22,3 +22,5 @@
 ### 셋업 방법은 [여기](https://github.com/SpaceDEVofficial/Taesiabot.py-rewrite/blob/main/guide/setup.md) 에서 확인하실수있습니다.
 
 ## 대시보드는 [이곳](https://gumroad.com/l/dashboardkit-free?recommended_by=search) 의 템플릿을 사용하였습니다.
+
+### 기여 받습니다! 많은 기여 부탁드립니다!
