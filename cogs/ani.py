@@ -14,6 +14,9 @@ class ani(commands.Cog):
 
     @commands.command(name="애니")
     async def ani_search(self,ctx,title=None):
+        """
+        애니 검색 기능입니다.
+        """
         if title == None:
             return await ctx.reply("검색할 애니 제목을 입력해주세요!")
         emd = discord.Embed(title="<a:loading:854164770327232522>검색중",description="검색중입니다. 잠시만 기다려주세요. \n만일 작동이 안될시 `(Prefix) + 문의 +문의내용`으로 문의하시기 바랍니다.")
