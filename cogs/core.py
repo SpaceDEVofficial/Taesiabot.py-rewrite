@@ -1,26 +1,30 @@
+import traceback
 from datetime import datetime
 import random
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 load_dotenv(verbose=True)
 import asyncio
-
+import random
+import hcskr
+from utils.execption import PermError
 class core(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.call = []
         self.join = []
-        self.company=["fmsg","rg","sdev","ccn","gpm","otl"]
+        self.company = ["fmsg", "rg", "sdev", "ccn", "gpm", "otl"]
         self.snipe_message_author = {}
         self.snipe_message_content = {}
         self.snipe_message_author_avatar = {}
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.stock_loop())
-
+        self.stock=self.bot.loop.create_task(self.stock_loop())
+        self.hcs=self.bot.loop.create_task(self.hcs_loop())
+        self.black=self.bot.loop.create_task(self.black_loop())
 
     @commands.Cog.listener()
-    async def on_message_delete(self,message):
+    async def on_message_delete(self, message):
         self.snipe_message_author[message.channel.id] = message.author
         self.snipe_message_author_avatar[message.channel.id] = message.author.avatar_url
         self.snipe_message_content[message.channel.id] = message.content
@@ -30,7 +34,7 @@ class core(commands.Cog):
         del self.snipe_message_author_avatar[message.channel.id]
 
     @commands.command(name='snipe')
-    async def snipe(self,ctx):
+    async def snipe(self, ctx):
         channel = ctx.channel
         try:
             snipeEmbed = discord.Embed(title=f"Last deleted message in #{channel.name}",
@@ -53,7 +57,7 @@ class core(commands.Cog):
                     updown = random.randint(1,2) # 1은 하락,2는 상승
                     price = random.randint(100,3000)
                     if updown == 1:
-                        pr = await self.bot.pg_con.fetchrow("SELECT price FROM stock WHERE company_name = $1",i)
+                        pr = await self.bot.pg_con.fetchrow("SELECT price FROM stock WHERE company_name = $1", i)
                         prices = pr[0]
                         if prices - price <= 50:
                             price = 100
@@ -77,39 +81,105 @@ class core(commands.Cog):
                         await self.bot.pg_con.execute("UPDATE stock SET down_up=$1 WHERE company_name = $2", "up", i)
                         await self.bot.pg_con.execute("UPDATE stock SET down_up_value=$1 WHERE company_name = $2", price, i)
 
+    async def black_loop(self):
+        await self.bot.wait_until_ready()
+        while not self.bot.is_closed():
+            await asyncio.sleep(60)
+            black=await self.bot.pg_con.fetch("SELECT * FROM black_list")
+            for i in black:
+                date = datetime.strptime(i[1], '%Y-%m-%d %H:%M')
+
+                if date < datetime.now():
+                    try:
+                        await self.bot.pg_con.execute("DELETE FROM black_list WHERE user_id=$1",i[0])
+                        black_em = discord.Embed(title="블랙해제안내.",
+                                              description=f"""
+안녕하십니까? `{await self.bot.fetch_user(int(i[0]))}`님은 블랙리스트에서 해제가 되어 안내DM을 발송하였습니다.\n
+
+앞으로도 봇을 유용하게 사용해주시기바랍니다.
+
+감사합니다.
+""")
+                        await (await self.bot.fetch_user(int(i[0]))).send(embed=black_em)
+                        await self.bot.get_user(281566165699002379).send(f"`{await self.bot.fetch_user(int(i[0]))}`was deleted from black list")
+                    except Exception as e:
+                        await self.bot.get_user(281566165699002379).send(f"```py\n{e}\n```")
+
+
+
+    async def hcs_loop(self):
+        await self.bot.wait_until_ready()
+        while not self.bot.is_closed():
+            await asyncio.sleep(60)
+            now = datetime.now()
+            current_time = now.strftime("%H:%M")
+            print("hcs loop Current Time =", current_time)
+            if current_time == "07:00":
+                delay = random.randint(1,30)
+                await self.bot.get_channel(856531776863076402).send(f"자동자가진단이 `{delay}`분 후에 진행됩니다.")
+                await asyncio.sleep(60*delay)
+                await self.bot.get_channel(856531776863076402).send(f"자동자가진단수행시작.")
+                datas = await self.bot.pg_con.fetch("SELECT * FROM hcs")
+                num = 0
+                suc = 0
+                fail = 0
+                for i in datas:
+                    print(i)
+                    if not i[2] =="true":
+                        num +=1
+                        prc = await hcskr.asyncTokenSelfCheck(i[1])
+                        if prc["code"] == "SUCCESS":
+                            suc +=1
+                            await self.bot.pg_con.execute("UPDATE hcs SET status=$1 WHERE user_id=$2",
+                                                          "true", i[0])
+                            await self.bot.pg_con.execute("UPDATE hcs SET times=$1 WHERE user_id=$2",
+                                                          str(datetime.now()), i[0])
+                            await self.bot.get_channel(856531776863076402).send(f"**#{num}**. "+prc["message"])
+                        else:
+                            fail +=1
+                            await self.bot.get_channel(856531776863076402).send(f"**#{num}**. "+prc["message"])
+                    else:
+                        pass
+                await self.bot.get_channel(856531776863076402).send(f"총진행갯수 - {num}\n성공 - {suc}\n실패 - {fail}")
+                await asyncio.sleep(43200)
+                #await asyncio.sleep(30)
+                await self.bot.get_channel(856531776863076402).send(f"자동자가시스템초기화중..")
+                datas1 = await self.bot.pg_con.fetch("SELECT * FROM hcs")
+                num1=0
+                for i in datas1:
+                    num1 +=1
+                    await self.bot.pg_con.execute("UPDATE hcs SET status=$1 WHERE user_id=$2",
+                                                      "false", i[0])
+                    await self.bot.get_channel(856531776863076402).send(f"**#{num1}**번째초기화완료.")
+                await self.bot.get_channel(856531776863076402).send(f"자동자가시스템초기화완료!")
+
+
+
     def cog_unload(self):
-        self.stock_loop().close()
+        self.stock.cancel()
+        self.hcs.cancel()
+        self.black.cancel()
+        print("TEST")
 
     @commands.Cog.listener()
-    async def on_member_join(self, member):
-        es3 = await self.bot.pg_con.fetchrow("SELECT * FROM join_out WHERE guild_id = $1", member.guild.id)
-        if es3[0] == member.guild.id:
-            if not member.id in self.join:
-                self.join.append(member.id)
-                await asyncio.sleep(es3[2])
-                self.join.remove(member.id)
-
-    @commands.Cog.listener()
-    async def on_member_remove(self, member):
-        es3 = await self.bot.pg_con.fetchrow("SELECT * FROM join_out WHERE guild_id = $1", member.guild.id)
-        if es3[0] == member.guild.id and member.id in self.join:
-            em = discord.Embed(title="들낙로그",description=f"`{member}` | `{member.id}`\n들낙하여 밴처리되었습니다.",colour=discord.Colour.red())
-            await member.ban()
-            await self.bot.get_channel(es3[1]).send(embed=em)
-            ban = discord.Embed(title="들낙으로 인한 밴안내",description=f"안녕하세요.\n들낙방지 설정이 되어있는 `{member.guild.name}`에서 들낙행위를 하여 밴처리되었습니다.\n자세한 사항은 길드 오너에게 문의하세요.")
-            await member.send(embed=ban)
+    async def on_command_error(self,ctx: commands.Context, error: Exception):
+        if isinstance(error, PermError.BlacklistedUser):
+            await ctx.reply(f"You are black list user.(당신은 블랙리스트유저입니다.)\n```py\n{type(error)}\n\n{'*****'*5}\n\n{traceback.print_exc()}\n```")
+        elif isinstance(error, PermError.NotOwnerUser):
+            await ctx.reply(f"You are not owner.(당신은 오너가 아닙니다.)\n```py\n{type(error)}\n\n{'*****'*5}\n\n{traceback.print_exc()}\n```")
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         if payload.member.bot:
             pass
         else:
-            res1 = await self.bot.pg_con.fetch("SELECT * FROM rr_conf WHERE guild_id = $1",payload.guild_id)
+            res1 = await self.bot.pg_con.fetch("SELECT * FROM rr_conf WHERE guild_id = $1", payload.guild_id)
             if res1 == []:
                 return
             for i in res1:
                 if payload.message_id != i[2]:
-                    res3 = await self.bot.pg_con.fetchrow("SELECT * FROM ticket_conf WHERE guild_id = $1", payload.guild_id)
+                    res3 = await self.bot.pg_con.fetchrow("SELECT * FROM ticket_conf WHERE guild_id = $1",
+                                                          payload.guild_id)
                     print(res3)
                     if res3 == None:
                         return
@@ -124,8 +194,9 @@ class core(commands.Cog):
 
                         guild_id = payload.guild_id
                         guild = self.bot.get_guild(guild_id)
-                        res5 = await self.bot.pg_con.fetchrow("SELECT * FROM ticket_value WHERE guild_id = $1 AND channel_id = $2",
-                                                              guild_id,channel_id)
+                        res5 = await self.bot.pg_con.fetchrow(
+                            "SELECT * FROM ticket_value WHERE guild_id = $1 AND channel_id = $2",
+                            guild_id, channel_id)
                         try:
                             if message_id == res5[2] and guild_id == res5[0] and channel_id == res5[
                                 1] and payload.emoji.name == "📢" and user.bot == False:
@@ -138,7 +209,8 @@ class core(commands.Cog):
                                 role = guild.get_role(res3[4])
                                 for member in guild.members:
                                     if role in member.roles:
-                                        em = discord.Embed(title="대기중인 티켓",description=f"현재 `{guild}`의 `{channel}`에서 `{user}`님이 대기중입니다.")
+                                        em = discord.Embed(title="대기중인 티켓",
+                                                           description=f"현재 `{guild}`의 `{channel}`에서 `{user}`님이 대기중입니다.")
                                         await member.send(embed=em)
                                 await channel.send("정상적으로 호출하였습니다.")
                             if message_id == res5[2] and guild_id == res5[0] and channel_id == res5[
@@ -162,7 +234,8 @@ class core(commands.Cog):
                                     self.call.remove(str(user_id))
                                 except:
                                     pass
-                                await self.bot.pg_con.execute("DELETE FROM ticket_value WHERE channel_id = $1", channel_id)
+                                await self.bot.pg_con.execute("DELETE FROM ticket_value WHERE channel_id = $1",
+                                                              channel_id)
                         except:
                             pass
                     else:
@@ -224,9 +297,10 @@ class core(commands.Cog):
                 else:
                     res2 = await self.bot.pg_con.fetch("SELECT * FROM rr_value")
                     for a in res2:
-                        aa = str(a[1]).replace(" ","")
+                        aa = str(a[1]).replace(" ", "")
                         if aa.startswith("<:"):
-                            if f"<:{payload.emoji.name}:{payload.emoji.id}>" == aa and payload.message_id == i[2] and payload.guild_id == a[2]:
+                            if f"<:{payload.emoji.name}:{payload.emoji.id}>" == aa and payload.message_id == i[
+                                2] and payload.guild_id == a[2]:
                                 guild = self.bot.get_guild(payload.guild_id)
                                 role = guild.get_role(int(a[0]))
                                 await payload.member.add_roles(role)
@@ -235,17 +309,13 @@ class core(commands.Cog):
                             role = guild.get_role(int(a[0]))
                             await payload.member.add_roles(role)
 
-
-
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         res1 = await self.bot.pg_con.fetch("SELECT * FROM rr_conf WHERE guild_id = $1", payload.guild_id)
-        print(res1)
         if res1 == []:
             return
         for i in res1:
             if payload.message_id != i[2] and payload.channel_id != i[1] and payload.guild_id != i[0]:
-                print("psdd")
                 return
             else:
                 if payload.guild_id == i[0] and payload.message_id == i[2]:
@@ -253,7 +323,8 @@ class core(commands.Cog):
                     for a in res2:
                         aa = str(a[1]).replace(" ", "")
                         if aa.startswith("<:"):
-                            if f"<:{payload.emoji.name}:{payload.emoji.id}>" == aa and payload.message_id == i[2] and payload.guild_id == a[2]:
+                            if f"<:{payload.emoji.name}:{payload.emoji.id}>" == aa and payload.message_id == i[
+                                2] and payload.guild_id == a[2]:
                                 guild = self.bot.get_guild(payload.guild_id)
                                 role = guild.get_role(int(a[0]))
                                 member = guild.get_member(payload.user_id)
@@ -264,7 +335,26 @@ class core(commands.Cog):
                             member = guild.get_member(payload.user_id)
                             await member.remove_roles(role)
 
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        es3 = await self.bot.pg_con.fetchrow("SELECT * FROM join_out WHERE guild_id = $1", member.guild.id)
+        if es3[0] == member.guild.id:
+            if not member.id in self.join:
+                self.join.append(member.id)
+                await asyncio.sleep(es3[2])
+                self.join.remove(member.id)
 
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        es3 = await self.bot.pg_con.fetchrow("SELECT * FROM join_out WHERE guild_id = $1", member.guild.id)
+        if es3[0] == member.guild.id and member.id in self.join:
+            em = discord.Embed(title="들낙로그", description=f"`{member}` | `{member.id}`\n들낙하여 밴처리되었습니다.",
+                               colour=discord.Colour.red())
+            await member.ban()
+            await self.bot.get_channel(es3[1]).send(embed=em)
+            ban = discord.Embed(title="들낙으로 인한 밴안내",
+                                description=f"안녕하세요.\n들낙방지 설정이 되어있는 `{member.guild.name}`에서 들낙행위를 하여 밴처리되었습니다.\n자세한 사항은 길드 오너에게 문의하세요.")
+            await member.send(embed=ban)
 
 def setup(bot):
     bot.add_cog(core(bot))
