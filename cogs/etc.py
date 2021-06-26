@@ -3,13 +3,18 @@ import os
 import asyncpg
 import requests
 from discord.ext import commands
-import DiscordUtils
+import aiohttp
 import discord
 from PIL import Image, ImageDraw
-
+import DiscordUtils
+import json
 # Open template and get drawing context
 from PIL import ImageFont
 from PIL import ImageColor
+from dpytools.checks import any_checks
+from dpytools.menus import confirm
+
+from utils.checks import not_black,is_owner
 from dotenv import load_dotenv
 load_dotenv(verbose=True)
 
@@ -51,20 +56,61 @@ class etc(commands.Cog):
         em.set_footer(icon_url=ctx.author.avatar_url,text=footer)
         return em
 
+
+
+    @any_checks
+    @commands.has_permissions(administrator=True)
+    @is_owner()
+    @not_black()
+    @commands.command(name="공지등록")
+    async def notice_ch_add(self,ctx,channel:discord.TextChannel):
+        data = await self.bot.pg_con.fetchrow("SELECT * FROM notice_setting WHERE guild_id=$1",ctx.guild.id)
+        if data != None:
+            return await ctx.reply(embed=self.make_embed(ctx,
+                                                         title="ERROR!",
+                                                         desc=f"이미 설정되어있습니다.\n설정된 채널: <#{data[1]}>",
+                                                         color=discord.Colour.red(),
+                                                         footer="변경을 원하시면 '(Prefix)공지해제'로 등록해제하신뒤 다시 등록해주세요."))
+        else:
+            em = discord.Embed(title="Confirm?",
+                               description=f"{channel.mention}을(를) 공지채널로 등록하시겠습니까?",
+                               colour=discord.Colour.red())
+            msg = await ctx.reply(embed=em)
+            confirmation = await confirm(ctx, msg)
+            if confirmation:
+                em = discord.Embed(title="Processing..",
+                                   description=f"저장중입니다...",
+                                   colour=discord.Colour.red())
+                await msg.edit(embed=em)
+                await self.bot.pg_con.execute("INSERT INTO notice_setting(guild_id,channel_id) VALUES ($1,$2)",
+                                              ctx.guild.id,channel.id)
+                em = discord.Embed(title="Complete!",
+                                   description=f"저장을 완료하였습니다!",
+                                   colour=discord.Colour.red())
+                await msg.edit(embed=em)
+            elif confirmation is False:
+                em1 = discord.Embed(title="Cancelled! ⛔", description="거부하셨습니다.", colour=discord.Colour.red())
+                await msg.edit(embed=em1)
+            else:
+                em1 = discord.Embed(title="Time out! ⛔", description="취소되었습니다.", colour=discord.Colour.red())
+                await msg.edit(embed=em1)
+
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def warn(self,ctx,user:discord.Member,*,reason):
-        conf = await self.bot.pg_con.fetchrow("SELECT * FROM warn_conf WHERE guild_id=$1",ctx.guild.id)
+    async def warn(self, ctx, user: discord.Member, *, reason):
+        conf = await self.bot.pg_con.fetchrow("SELECT * FROM warn_conf WHERE guild_id=$1", ctx.guild.id)
         if not conf == None:
-            num_count = await self.bot.pg_con.fetch("SELECT * FROM warn_value WHERE guild_id=$1 AND warn_to=$2",ctx.guild.id,user.id)
+            num_count = await self.bot.pg_con.fetch("SELECT * FROM warn_value WHERE guild_id=$1 AND warn_to=$2",
+                                                    ctx.guild.id, user.id)
             if num_count == []:
-                await self.bot.pg_con.execute("INSERT INTO warn_value(guild_id,num,warn_to,reason,warn_from) VALUES($1,$2,$3,$4,$5)",
-                                              ctx.guild.id,1,user.id,reason,ctx.author.id)
-                em = discord.Embed(title="🚨 경고 로그 - #1 🚨",colour=discord.Colour.red())
-                em.add_field(name="👮‍♂️경고 요청자",value=f"{ctx.author.mention}",inline=False)
-                em.add_field(name="📌경고 대상자",value=f"{user.mention}",inline=False)
-                em.add_field(name="경고 횟수",value=f"1/{conf[1]}")
-                em.add_field(name="사유",value=reason,inline=False)
+                await self.bot.pg_con.execute(
+                    "INSERT INTO warn_value(guild_id,num,warn_to,reason,warn_from) VALUES($1,$2,$3,$4,$5)",
+                    ctx.guild.id, 1, user.id, reason, ctx.author.id)
+                em = discord.Embed(title="🚨 경고 로그 - #1 🚨", colour=discord.Colour.red())
+                em.add_field(name="👮‍♂️경고 요청자", value=f"{ctx.author.mention}", inline=False)
+                em.add_field(name="📌경고 대상자", value=f"{user.mention}", inline=False)
+                em.add_field(name="경고 횟수", value=f"1/{conf[1]}")
+                em.add_field(name="사유", value=reason, inline=False)
                 await ctx.send(embed=em)
                 await self.bot.get_channel(conf[4]).send(embed=em)
             else:
@@ -86,12 +132,15 @@ class etc(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def unwarn(self,ctx,user:discord.Member,ID,*,reason):
+    async def unwarn(self, ctx, user: discord.Member, ID, *, reason):
         conf = await self.bot.pg_con.fetchrow("SELECT * FROM warn_conf WHERE guild_id=$1", ctx.guild.id)
-        warn = await self.bot.pg_con.fetchrow("SELECT * FROM warn_value WHERE guild_id=$1 AND warn_to = $2 AND num = $3", ctx.guild.id,user.id,int(ID))
+        warn = await self.bot.pg_con.fetchrow(
+            "SELECT * FROM warn_value WHERE guild_id=$1 AND warn_to = $2 AND num = $3", ctx.guild.id, user.id, int(ID))
         if not conf == None:
             if not warn == None:
-                await self.bot.pg_con.execute("DELETE FROM warn_value WHERE guild_id = $1 AND warn_to = $2 AND num = $3",ctx.guild.id,user.id,int(ID))
+                await self.bot.pg_con.execute(
+                    "DELETE FROM warn_value WHERE guild_id = $1 AND warn_to = $2 AND num = $3", ctx.guild.id, user.id,
+                    int(ID))
                 num_count = await self.bot.pg_con.fetch("SELECT * FROM warn_value WHERE guild_id=$1 AND warn_to=$2",
                                                         ctx.guild.id, user.id)
                 num = 1
@@ -113,59 +162,22 @@ class etc(commands.Cog):
             await ctx.reply("경고 설정이 되어있지 않습니다. `(Prefix) + 경고설정가이드`를 참고하여 설정을 완료하여주세요.")
 
     @commands.command(name="경고설정가이드")
-    async def warn_guide(self,ctx):
-        em = discord.Embed(title="경고 설정 하는법",description="(Prefix) + 경고설정 + #경고로그채널 + 최대경고수 + 처벌 + @뮤트역할(옵션)")
-        em.add_field(name="#경고로그채널",value="경고 부여 및 처벌시에 기록될 채널.",inline=False)
+    async def warn_guide(self, ctx):
+        em = discord.Embed(title="경고 설정 하는법", description="(Prefix) + 경고설정 + #경고로그채널 + 최대경고수 + 처벌 + @뮤트역할(옵션)")
+        em.add_field(name="#경고로그채널", value="경고 부여 및 처벌시에 기록될 채널.", inline=False)
         em.add_field(name="최대경고수", value="자동으로 처벌하기위한 기준입니다.", inline=False)
-        em.add_field(name="처벌", value="자동으로 처벌할수있도록하는 카테고리입니다. 입력시 아래 카테고리의 이름을 **__정확히__**입력해주세요.\n지원 처벌기능:\n강제퇴장\n밴\n뮤트", inline=False)
-        em.add_field(name="@뮤트역할", value="처벌 카테고리를 `뮤트`로 하였을때 뮤트전용 역할을 선택합니다.\n뮤트 역할이 없을시 비워두시면 자동으로 생성합니다.\n뮤트로 하지않았을때는 입력하지 않아도 됩니다.", inline=False)
+        em.add_field(name="처벌",
+                     value="자동으로 처벌할수있도록하는 카테고리입니다. 입력시 아래 카테고리의 이름을 **__정확히__**입력해주세요.\n지원 처벌기능:\n강제퇴장\n밴\n뮤트",
+                     inline=False)
+        em.add_field(name="@뮤트역할",
+                     value="처벌 카테고리를 `뮤트`로 하였을때 뮤트전용 역할을 선택합니다.\n뮤트 역할이 없을시 비워두시면 자동으로 생성합니다.\n뮤트로 하지않았을때는 입력하지 않아도 됩니다.",
+                     inline=False)
         await ctx.reply(embed=em)
-
-    @commands.command(name="들낙설정")
-    @commands.has_permissions(administrator=True)
-    async def setup_joinout(self, ctx, log_channel: discord.TextChannel, times: int):
-        conf = await self.bot.pg_con.fetchrow("SELECT * FROM join_out WHERE guild_id=$1", ctx.guild.id)
-        msg = await ctx.send(embed=self.make_embed(ctx=ctx,
-                                                   title="Loading.. ⏳",
-                                                   desc=f"설정중입니다.잠시만 기다려주세요.",
-                                                   color=discord.Colour.green()))
-        if conf == None:
-
-            await self.bot.pg_con.execute("INSERT INTO join_out(guild_id,channel_id,sleep) VALUES($1,$2,$3)",ctx.guild.id,log_channel.id,times)
-            await msg.edit(embed=self.make_embed(ctx=ctx,
-                                                 title="SUCCESS ✅",
-                                                 desc=f"설정되었습니다.",
-                                                 color=discord.Colour.green()))
-        else:
-            await msg.edit(embed=self.make_embed(ctx=ctx,
-                                                 title="ERROR! ⛔",
-                                                 desc=f"이미 설정되어있습니다.\n로그채널: <#{conf[1]}>\n제한시간: {conf[2]}\n변경을 원하실경우 `(Prefix) + 들낙삭제`로 데이터삭제후 다시 등록해주세요.",
-                                                 color=discord.Colour.green()))
-
-    @commands.command(name="들낙삭제")
-    @commands.has_permissions(administrator=True)
-    async def del_joinout(self, ctx):
-        conf = await self.bot.pg_con.fetchrow("SELECT * FROM join_out WHERE guild_id=$1", ctx.guild.id)
-        msg = await ctx.send(embed=self.make_embed(ctx=ctx,
-                                                   title="Loading.. ⏳",
-                                                   desc=f"삭제중입니다.잠시만 기다려주세요.",
-                                                   color=discord.Colour.green()))
-        if conf == None:
-            await msg.edit(embed=self.make_embed(ctx=ctx,
-                                                 title="ERROR! ⛔",
-                                                 desc=f"설정되어있지 않습니다. `(Prefix) + 들낙설정 + #로그채널 + 제한시간(초)`로 설정해주세요.",
-                                                 color=discord.Colour.green()))
-        else:
-            await self.bot.pg_con.execute("DELETE FROM join_out WHERE guild_id=$1",
-                                          ctx.guild.id)
-            await msg.edit(embed=self.make_embed(ctx=ctx,
-                                                 title="SUCCESS ✅",
-                                                 desc=f"삭제되었습니다.",
-                                                 color=discord.Colour.green()))
 
     @commands.command(name="경고설정")
     @commands.has_permissions(administrator=True)
-    async def setup_warn(self,ctx,log_channel:discord.TextChannel,count:int,punish,mute_role:discord.Role=None):
+    async def setup_warn(self, ctx, log_channel: discord.TextChannel, count: int, punish,
+                         mute_role: discord.Role = None):
         conf = await self.bot.pg_con.fetchrow("SELECT * FROM warn_conf WHERE guild_id=$1", ctx.guild.id)
         if conf == None:
             if punish == "뮤트" and mute_role == None:
@@ -199,8 +211,9 @@ class etc(commands.Cog):
                             channels = guild.channels
                             for channel in channels:
                                 await channel.set_permissions(mutedRole, speak=False, send_messages=False)
-                            await self.bot.pg_con.execute("INSERT INTO warn_conf(guild_id,warn_max,punish,mute_id,log_channel) VALUES($1,$2,$3,$4,$5)",
-                                                          guild.id,count,punish,mutedRole.id,log_channel.id)
+                            await self.bot.pg_con.execute(
+                                "INSERT INTO warn_conf(guild_id,warn_max,punish,mute_id,log_channel) VALUES($1,$2,$3,$4,$5)",
+                                guild.id, count, punish, mutedRole.id, log_channel.id)
                             return await msg.edit(embed=self.make_embed(ctx=ctx,
                                                                         title="Success! ✅",
                                                                         desc=f"성공적으로 설정하였습니다.",
@@ -245,33 +258,77 @@ class etc(commands.Cog):
         else:
             if conf[3] == 1:
                 await ctx.send(embed=self.make_embed(ctx=ctx,
-                                                    title="Error! ⛔",
-                                                    desc=f"이미 설정되어있습니다.\n\n설정값\n\n한계경고횟수: {conf[1]}\n자동처벌기능: {conf[2]}\n뮤트역할: 설정되어있지않음\n로그채널: <#{conf[4]}>",
-                                                    color=discord.Colour.red()))
+                                                     title="Error! ⛔",
+                                                     desc=f"이미 설정되어있습니다.\n\n설정값\n\n한계경고횟수: {conf[1]}\n자동처벌기능: {conf[2]}\n뮤트역할: 설정되어있지않음\n로그채널: <#{conf[4]}>",
+                                                     color=discord.Colour.red()))
             else:
                 await ctx.send(embed=self.make_embed(ctx=ctx,
                                                      title="Error! ⛔",
                                                      desc=f"이미 설정되어있습니다.\n\n설정값\n\n한계경고횟수: {conf[1]}\n자동처벌기능: {conf[2]}\n뮤트역할: <@&{conf[3]}>\n로그채널: <#{conf[4]}>",
                                                      color=discord.Colour.red()))
+
+    @commands.command(name="들낙설정")
+    @commands.has_permissions(administrator=True)
+    async def setup_joinout(self, ctx, log_channel: discord.TextChannel, times: int):
+        conf = await self.bot.pg_con.fetchrow("SELECT * FROM join_out WHERE guild_id=$1", ctx.guild.id)
+        msg = await ctx.send(embed=self.make_embed(ctx=ctx,
+                                                   title="Loading.. ⏳",
+                                                   desc=f"설정중입니다.잠시만 기다려주세요.",
+                                                   color=discord.Colour.green()))
+        if conf == None:
+
+            await self.bot.pg_con.execute("INSERT INTO join_out(guild_id,channel_id,sleep) VALUES($1,$2,$3)",
+                                          ctx.guild.id, log_channel.id, times)
+            await msg.edit(embed=self.make_embed(ctx=ctx,
+                                                 title="SUCCESS ✅",
+                                                 desc=f"설정되었습니다.",
+                                                 color=discord.Colour.green()))
+        else:
+            await msg.edit(embed=self.make_embed(ctx=ctx,
+                                                 title="ERROR! ⛔",
+                                                 desc=f"이미 설정되어있습니다.\n로그채널: <#{conf[1]}>\n제한시간: {conf[2]}\n변경을 원하실경우 `(Prefix) + 들낙삭제`로 데이터삭제후 다시 등록해주세요.",
+                                                 color=discord.Colour.green()))
+
+    @commands.command(name="들낙삭제")
+    @commands.has_permissions(administrator=True)
+    async def del_joinout(self, ctx):
+        conf = await self.bot.pg_con.fetchrow("SELECT * FROM join_out WHERE guild_id=$1", ctx.guild.id)
+        msg = await ctx.send(embed=self.make_embed(ctx=ctx,
+                                                   title="Loading.. ⏳",
+                                                   desc=f"삭제중입니다.잠시만 기다려주세요.",
+                                                   color=discord.Colour.green()))
+        if conf == None:
+            await msg.edit(embed=self.make_embed(ctx=ctx,
+                                                 title="ERROR! ⛔",
+                                                 desc=f"설정되어있지 않습니다. `(Prefix) + 들낙설정 + #로그채널 + 제한시간(초)`로 설정해주세요.",
+                                                 color=discord.Colour.green()))
+        else:
+            await self.bot.pg_con.execute("DELETE FROM join_out WHERE guild_id=$1",
+                                          ctx.guild.id)
+            await msg.edit(embed=self.make_embed(ctx=ctx,
+                                                 title="SUCCESS ✅",
+                                                 desc=f"삭제되었습니다.",
+                                                 color=discord.Colour.green()))
+
     @commands.command(name="도움")
-    async def helps(self,ctx:discord.Message):
+    async def helps(self, ctx: discord.Message):
         embed1 = discord.Embed(title="메인 페이지",
                                description="""
-안녕하세요. 태시아 봇을 이용해주셔서 감사드립니다.
-태시아 봇은 서버관리,주식,애니검색등등 다양한 기능을 가진 봇입니다.
+    안녕하세요. 태시아 봇을 이용해주셔서 감사드립니다.
+    태시아 봇은 서버관리,주식,애니검색등등 다양한 기능을 가진 봇입니다.
 
-목차
-(모든 커맨드의 필수요소는 ' * '로 표시하며 선택적요소는 ' () '로 표시합니다. 
-실사용시 표시된 모든 기호는 제외하여 사용해주세요.)
+    목차
+    (모든 커맨드의 필수요소는 ' * '로 표시하며 선택적요소는 ' () '로 표시합니다. 
+    실사용시 표시된 모든 기호는 제외하여 사용해주세요.)
 
-• 1페이지: (현재페이지) 메인 페이지
-• 2페이지: 서버관리
-• 3페이지: 이코노미
-• 4페이지: 기타
-""",
+    • 1페이지: (현재페이지) 메인 페이지
+    • 2페이지: 서버관리
+    • 3페이지: 이코노미
+    • 4페이지: 기타
+    """,
                                color=ctx.author.color)
-        embed1.set_footer(text='1 / 3',icon_url=ctx.author.avatar_url)
-        embed2 = discord.Embed(title="서버관리",color=ctx.author.color)
+        embed1.set_footer(text='1 / 3', icon_url=ctx.author.avatar_url)
+        embed2 = discord.Embed(title="서버관리", color=ctx.author.color)
         embed2.add_field(name="(Prefix) + 경고설정 + #로그채널* + 한계경고수* + 처벌항목* + (뮤트역할)",
                          value="한계경고 수치에 달할경우 자동으로 처벌하기위한 설정 기능입니다.\n뮤트역할은 처벌항목을 뮤트로 할경우 설정해야합니다.",
                          inline=False)
@@ -305,10 +362,9 @@ class etc(commands.Cog):
         embed2.add_field(name="(Prefix) + 티켓탈퇴",
                          value="티켓기능을 비활성화합니다.",
                          inline=False)
-        embed2.set_footer(text='2 / 4',icon_url=ctx.author.avatar_url)
+        embed2.set_footer(text='2 / 4', icon_url=ctx.author.avatar_url)
 
-
-        embed3 = discord.Embed(title="이코노미",color=ctx.author.color)
+        embed3 = discord.Embed(title="이코노미", color=ctx.author.color)
         embed3.add_field(name="(Prefix) + 가입",
                          value="이코노미 시스템에 가입합니다.",
                          inline=False)
@@ -325,12 +381,11 @@ class etc(commands.Cog):
                          value="가지고있는 주식을 보여줍니다.",
                          inline=False)
         embed3.set_footer(text='3 / 4', icon_url=ctx.author.avatar_url)
-
         embed4 = discord.Embed(title="기타", color=ctx.author.color)
-        embed4.add_field(name="준비중",value="** **",inline=False)
+        embed4.add_field(name="준비중", value="** **", inline=False)
         embed4.set_footer(text='4 / 4', icon_url=ctx.author.avatar_url)
         paginator = DiscordUtils.Pagination.AutoEmbedPaginator(ctx)
-        embeds = [embed1, embed2, embed3,embed4]
+        embeds = [embed1, embed2, embed3, embed4]
         await paginator.run(embeds)
         #await ctx.reply("```\n도움말\n\n(접두사) + 야 : 잘살아있는지 확인합니다.\n(접두사) + 프픽변경 : 접두사를 변경할수있는 대시보드 URL을 알려줍니다.\n(접두사) + 프픽 : 커스텀 접두사를 알려줍니다.\n(접두사) + 레벨: 레벨카드를 보여줍니다.```")
 
@@ -339,38 +394,38 @@ class etc(commands.Cog):
     async def prefix(self,ctx:discord.Message):
         await ctx.reply("?")
 
-    async def check_prefix(self,id):
-        vl = await self.bot.pg_con.fetch(f"SELECT * FROM prefix WHERE guild = $1",str(id))
+    async def check_prefix(self, id):
+        vl = await self.bot.pg_con.fetch(f"SELECT * FROM prefix WHERE guild = $1", str(id))
         if vl == []:
             return False
         else:
             return True
 
-    async def edit_prefix(self,id,data):
+    async def edit_prefix(self, id, data):
         res = await self.check_prefix(id=id)
         if res == False:
             try:
-                await self.bot.pg_con.execute(f"INSERT INTO prefix(guild,prefix) VALUES($1,$2)",str(id),str(data))
-                return {"error":False,"msg":f"정상적으로 프리픽스를 ' {data} '로 변경하였습니다.","state":"success"}
+                await self.bot.pg_con.execute(f"INSERT INTO prefix(guild,prefix) VALUES($1,$2)", str(id), str(data))
+                return {"error": False, "msg": f"정상적으로 프리픽스를 ' {data} '로 변경하였습니다.", "state": "success"}
             except:
                 return {"error": True, "msg": f"프리픽스를 변경하는 도중 알수없는 문제로 실패하였습니다.", "state": "danger"}
 
         else:
             try:
-                await self.bot.pg_con.execute(f"UPDATE prefix SET prefix=$1 WHERE guild = $2",(data,str(id)))
+                await self.bot.pg_con.execute(f"UPDATE prefix SET prefix=$1 WHERE guild = $2", (data, str(id)))
                 return {"error": False, "msg": f"정상적으로 프리픽스를 ' {data} '로 변경하였습니다.", "state": "success"}
             except:
                 return {"error": True, "msg": f"프리픽스를 변경하는 도중 알수없는 문제로 실패하였습니다.", "state": "danger"}
 
     @commands.command(name='프픽변경')
     @commands.has_permissions(administrator=True)
-    async def change_prefix(self, ctx: discord.Message,prefix):
-        mn = await self.edit_prefix(id=ctx.guild.id,data=prefix)
+    async def change_prefix(self, ctx: discord.Message, prefix):
+        mn = await self.edit_prefix(id=ctx.guild.id, data=prefix)
         if mn["error"] == False:
             await ctx.reply(mn["msg"])
         else:
             await ctx.reply(mn["msg"])
-        #await ctx.reply(f"프리픽스 변경은 대시보드에서 해주세요.\nhttp://taesiabot.kro.kr/dashboard/{ctx.guild.id}")
+        # await ctx.reply(f"프리픽스 변경은 대시보드에서 해주세요.\nhttp://taesiabot.kro.kr/dashboard/{ctx.guild.id}")
 
     @commands.command(name='프픽')
     async def get_prefix(self,ctx: discord.Message):
@@ -461,9 +516,9 @@ class etc(commands.Cog):
             await ctx.reply("설정에 실패하였습니다.해당 채널에 메시지를 보낼권한, 또는 데이터베이스 에러입니다.")
 
     @commands.command(name="수정")
-    async def edit_rr(self, ctx,chid:int, *, val):
+    async def edit_rr(self, ctx, chid: int, *, val):
         res1 = await self.bot.pg_con.fetchrow("SELECT * FROM rr_conf WHERE guild_id = $1 AND message_id = $2",
-                                              ctx.guild.id,chid)
+                                              ctx.guild.id, chid)
         if res1 == None:
             return await ctx.reply(f"설정되어있지 않습니다.")
         else:
@@ -477,9 +532,9 @@ class etc(commands.Cog):
                 await ctx.reply("수정에 실패하였습니다.해당 채널에 메시지권한, 또는 데이터베이스 에러입니다.")
 
     @commands.command(name="등록")
-    async def setting_rr_add(self, ctx, chid:int,emoji=None, role: discord.Role = None):
+    async def setting_rr_add(self, ctx, chid: int, emoji=None, role: discord.Role = None):
         res1 = await self.bot.pg_con.fetchrow("SELECT * FROM rr_conf WHERE guild_id = $1 AND message_id = $2",
-                                              ctx.guild.id,chid)
+                                              ctx.guild.id, chid)
         if res1 == None:
             return await ctx.reply(f"설정되어있지 않습니다.")
         else:
@@ -523,9 +578,9 @@ class etc(commands.Cog):
             await ctx.reply("등록에 실패하였습니다.역할권한에러입니다.")
 
     @commands.command(name="삭제")
-    async def delete_rr(self, ctx, chid:int):
+    async def delete_rr(self, ctx, chid: int):
         res1 = await self.bot.pg_con.fetchrow("SELECT * FROM rr_conf WHERE guild_id = $1 AND message_id = $2",
-                                              ctx.guild.id,chid)
+                                              ctx.guild.id, chid)
         if res1 == None:
             return await ctx.reply(f"설정되어있지 않습니다.")
         else:
@@ -533,8 +588,9 @@ class etc(commands.Cog):
                 ch = self.bot.get_channel(res1[1])
                 msg = await ch.fetch_message(res1[2])
                 await msg.delete()
-                await self.bot.pg_con.execute("DELETE FROM rr_conf WHERE guild_id = $1 AND message_id = $2", ctx.guild.id, chid)
-                #await self.bot.pg_con.execute("DELETE FROM rr_value WHERE guild_id = $1", ctx.guild.id)
+                await self.bot.pg_con.execute("DELETE FROM rr_conf WHERE guild_id = $1 AND message_id = $2",
+                                              ctx.guild.id, chid)
+                # await self.bot.pg_con.execute("DELETE FROM rr_value WHERE guild_id = $1", ctx.guild.id)
                 await ctx.reply("✅")
             except:
                 await ctx.reply("❌실패하였습니다. 다시 시도해주세요.")
@@ -562,6 +618,8 @@ class etc(commands.Cog):
         await member.remove_roles(mutedRole)
         await ctx.send(f"{member.mention}님을 언뮤트하였습니다.")
         await member.send(f"{guild.name} 에서 언뮤트되셨습니다.")
+
+
 
 
 def setup(bot):
