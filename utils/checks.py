@@ -1,5 +1,4 @@
 from discord.ext import commands
-from data import masters
 import psycopg2
 import os
 from config import OWNERS
@@ -13,13 +12,6 @@ async def check_owner(ctx):
 
 def is_owner():
     return commands.check(check_owner)
-async def master_only(ctx):
-    if ctx.author.id in masters.MASTERS:
-        return True
-    raise commands.NotOwner()
-
-def is_master():
-    return commands.check(master_only)
 
 async def not_bot(ctx):
     if not ctx.author.bot:
