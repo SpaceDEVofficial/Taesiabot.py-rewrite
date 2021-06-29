@@ -28,7 +28,7 @@
 
 - [ ] 배틀그라운드 실시간 트래커 (PUBG live tracker):lock:
 - [ ] 배틀그라운드 전적 검색 (Searching PUBG matches infomation):bulb:
-- [ ] 배틀그라운드관련 소식 전달 기능 (notify pubg news):lock:
+- [ ] 배틀그라운드관련 소식 전달 기능 (notify about pubg news):lock:
 - [ ] 프리미엄&프리미엄 특권 (premium):bulb:
 
 ## 기여 받습니다! 많은 기여 부탁드립니다!
