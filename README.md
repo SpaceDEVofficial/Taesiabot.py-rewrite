@@ -30,5 +30,6 @@
 - [ ] 배틀그라운드 전적 검색 (Searching PUBG matches infomation):bulb:
 - [ ] 배틀그라운드관련 소식 전달 기능 (notify about PUBG news):lock:
 - [ ] 프리미엄&프리미엄 특권 (premium):bulb:
+- [ ] PostgreSQL 테이블 자동셋업 유틸 (PostgreSQL table auto setup util):bulb:
 
 ## 기여 받습니다! 많은 기여 부탁드립니다!
